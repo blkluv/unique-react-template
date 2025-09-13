@@ -26,7 +26,7 @@ export type UniqueWalletType = BaseWalletType<InjectedAccountWithMeta> & {
   publicKey: Uint8Array;
   prefixedAddress: (prefix?: number) => string;
   verify: (message: string | Uint8Array, signature: string | Uint8Array) => boolean;
-  walletMetaInformation: InjectedAccountWithMeta; // <-- added this
+  walletMetaInformation: InjectedAccountWithMeta;
 };
 
 /**
@@ -57,7 +57,7 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
             normalizedAddress,
             address,
             walletType: this.wallet,
-            walletMetaInformation: account, // <-- valid now
+            walletMetaInformation: account,
             signerType: SignerTypeEnum.Polkadot,
             publicKey: (account as any).publicKey || new Uint8Array(),
             prefixedAddress: (prefix?: number) => {
@@ -69,9 +69,18 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
               }
             },
             sign: async (message: string | Uint8Array) => {
-              const data = typeof message === "string" ? new TextEncoder().encode(message) : message;
-              const result = await account.sign(data);
-              return result?.signature ? new Uint8Array(Buffer.from(result.signature, "hex")) : new Uint8Array();
+              const data =
+                typeof message === "string" ? new TextEncoder().encode(message) : message;
+
+              if (!account.signer) {
+                console.error("No signer available for this account", account);
+                return new Uint8Array();
+              }
+
+              const result = await account.signer.sign(data, { type: "bytes" });
+              return result?.signature
+                ? new Uint8Array(Buffer.from(result.signature, "hex"))
+                : new Uint8Array();
             },
             verify: () => true, // TODO: implement proper verification
             signer: { ...account.signer, address },
