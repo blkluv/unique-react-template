@@ -71,12 +71,15 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
             },
             // The sign method now correctly accepts and handles the required payload type
             sign: async (payload: SignerPayloadJSON) => {
-              if (!account.signer.signPayload) {
+              // Cast the signer to the correct type to access the signPayload method
+              const signer = account.signer as InjectedAccountWithMeta["signer"];
+              
+              if (!signer || !signer.signPayload) {
                 console.error("No signPayload method available for this account's signer", account);
                 return new Uint8Array();
               }
               
-              const result: SignerResult = await account.signer.signPayload(payload);
+              const result: SignerResult = await signer.signPayload(payload);
               
               return result?.signature
                 ? new Uint8Array(Buffer.from(result.signature.slice(2), "hex"))
