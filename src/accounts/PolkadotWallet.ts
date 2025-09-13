@@ -19,13 +19,14 @@ export type PolkadotWalletName =
   | "novawallet";
 
 /**
- * Extended wallet type to include walletType
+ * Extended wallet type to include walletType and raw account info
  */
 export type UniqueWalletType = BaseWalletType<InjectedAccountWithMeta> & {
   walletType: PolkadotWalletName;
   publicKey: Uint8Array;
   prefixedAddress: (prefix?: number) => string;
   verify: (message: string | Uint8Array, signature: string | Uint8Array) => boolean;
+  walletMetaInformation: InjectedAccountWithMeta; // <-- added this
 };
 
 /**
@@ -55,8 +56,8 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
             name: account.meta.name || "",
             normalizedAddress,
             address,
-            walletType: this.wallet, // Now valid
-            walletMetaInformation: account,
+            walletType: this.wallet,
+            walletMetaInformation: account, // <-- valid now
             signerType: SignerTypeEnum.Polkadot,
             publicKey: (account as any).publicKey || new Uint8Array(),
             prefixedAddress: (prefix?: number) => {
