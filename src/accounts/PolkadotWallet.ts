@@ -36,6 +36,7 @@ export type UniqueWalletType = BaseWalletType<InjectedAccountWithMeta> & {
 export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta> {
   _accounts = new Map<string, UniqueWalletType>();
   wallet: PolkadotWalletName;
+  private _walletExtension: PolkadotExtension | undefined;
 
   constructor(defaultWallet: PolkadotWalletName = "polkadot-js") {
     this.wallet = defaultWallet;
@@ -43,6 +44,7 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
 
   async getAccounts() {
     const wallets: PolkadotExtension | undefined = await Polkadot.loadWalletByName(this.wallet);
+    this._walletExtension = wallets;
 
     if (!wallets || !wallets.signer) {
       console.error("No Polkadot wallet found or signer not available.");
@@ -76,10 +78,11 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
             },
             // The sign method now correctly accepts the correct payload type
             sign: async (payload: SignerPayloadJSON) => {
-              const signer = wallets.signer; // Get the signer from the wallet extension
+              // Use the wallet extension's signer, not the account's signer
+              const signer = this._walletExtension?.signer;
               
               if (!signer || !signer.signPayload) {
-                console.error("No signPayload method available for this account's signer", account);
+                console.error("No signPayload method available for this wallet's signer", account);
                 return new Uint8Array();
               }
               
@@ -90,7 +93,7 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
                 : new Uint8Array();
             },
             verify: () => true, // TODO: implement proper verification
-            signer: wallets.signer, // Set the signer property on the uniqueAccount object
+            // Remove the signer property since it doesn't belong on InjectedAccountWithMeta
           };
 
           return [account.address, uniqueAccount] as [string, UniqueWalletType];
