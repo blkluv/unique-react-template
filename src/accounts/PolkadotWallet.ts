@@ -9,7 +9,7 @@ import {
 } from "./types";
 
 /**
- * Represents the names of the supported Polkadot-based wallets.
+ * Supported Polkadot-based wallets.
  */
 export type PolkadotWalletName =
   | "polkadot-js"
@@ -19,7 +19,7 @@ export type PolkadotWalletName =
   | "novawallet";
 
 /**
- * Extended wallet type to include walletType and raw account info
+ * Extended wallet type with walletType and raw account info.
  */
 export type UniqueWalletType = BaseWalletType<InjectedAccountWithMeta> & {
   walletType: PolkadotWalletName;
@@ -30,7 +30,7 @@ export type UniqueWalletType = BaseWalletType<InjectedAccountWithMeta> & {
 };
 
 /**
- * Class representing a Polkadot wallet integration.
+ * Polkadot wallet integration.
  */
 export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta> {
   _accounts = new Map<string, UniqueWalletType>();
@@ -77,7 +77,8 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
                 return new Uint8Array();
               }
 
-              const result = await account.signer.sign(data, { type: "bytes" });
+              // FIXED: Only pass the message; don't pass an options object
+              const result = await account.signer.sign(data);
               return result?.signature
                 ? new Uint8Array(Buffer.from(result.signature, "hex"))
                 : new Uint8Array();
