@@ -1,5 +1,5 @@
-import { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import { Polkadot, PolkadotExtension } from "@unique-nft/utils/extension";
+import { InjectedAccountWithMeta, InjectedExtension } from "@polkadot/extension-inject/types"; // Import InjectedExtension here
+import { Polkadot } from "@unique-nft/utils/extension"; // Keep Polkadot as is
 import { Address } from "@unique-nft/utils";
 import { Keyring } from "@polkadot/api";
 import {
@@ -36,15 +36,14 @@ export type UniqueWalletType = BaseWalletType<InjectedAccountWithMeta> & {
 export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta> {
   _accounts = new Map<string, UniqueWalletType>();
   wallet: PolkadotWalletName;
-  private _walletExtension: PolkadotExtension | undefined;
 
   constructor(defaultWallet: PolkadotWalletName = "polkadot-js") {
     this.wallet = defaultWallet;
   }
 
   async getAccounts() {
-    const wallets: PolkadotExtension | undefined = await Polkadot.loadWalletByName(this.wallet);
-    this._walletExtension = wallets;
+    // Correctly type 'wallets' as InjectedExtension | undefined
+    const wallets: InjectedExtension | undefined = await Polkadot.loadWalletByName(this.wallet);
 
     if (!wallets || !wallets.signer) {
       console.error("No Polkadot wallet found or signer not available.");
@@ -78,11 +77,10 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
             },
             // The sign method now correctly accepts the correct payload type
             sign: async (payload: SignerPayloadJSON) => {
-              // Use the wallet extension's signer, not the account's signer
-              const signer = this._walletExtension?.signer;
+              const signer = wallets.signer; // Get the signer from the wallet extension
               
               if (!signer || !signer.signPayload) {
-                console.error("No signPayload method available for this wallet's signer", account);
+                console.error("No signPayload method available for this account's signer", account);
                 return new Uint8Array();
               }
               
@@ -93,7 +91,7 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
                 : new Uint8Array();
             },
             verify: () => true, // TODO: implement proper verification
-            // Remove the signer property since it doesn't belong on InjectedAccountWithMeta
+            signer: wallets.signer, // Set the signer property on the uniqueAccount object
           };
 
           return [account.address, uniqueAccount] as [string, UniqueWalletType];
