@@ -2,9 +2,6 @@ import { useCallback, useState } from 'react';
 import { PolkadotWallet, PolkadotWalletName } from './PolkadotWallet';
 import { BaseWalletType } from './types';
 
-/**
- * Represents the names of supported wallets that can be connected.
- */
 export type ConnectedWalletsName = 'polkadot-js' | 'keyring' | 'metamask' | 'talisman' | 'subwallet-js' | 'enkrypt' | 'novawallet';
 
 const wallets = new Map<
@@ -18,31 +15,8 @@ const wallets = new Map<
   ['novawallet', PolkadotWallet],
 ]);
 
-/**
- * Key used for storing the type of connected wallet in localStorage.
- * 
- * @constant
- */
 export const CONNECTED_WALLET_TYPE = 'connected-wallet-type';
 
-/**
- * Custom React hook for managing wallet connections.
- * 
- * @returns An object containing:
- * - `connectWallet`: A function to connect a wallet of the specified type.
- * - `connectedWallets`: A Map of connected wallets and their respective accounts.
- * 
- * @example
- * ```typescript
- * const { connectWallet, connectedWallets } = useWalletCenter();
- * 
- * // Connect to a Polkadot.js wallet
- * await connectWallet('polkadot-js');
- * 
- * // Access the connected wallets and their accounts
- * console.log(connectedWallets);
- * ```
- */
 export const useWalletCenter = (chainProperties?: any) => {
   const [connectedWallets, setConnectedWallets] = useState(
     new Map<ConnectedWalletsName, Map<string, BaseWalletType<any>>>([])
@@ -53,6 +27,12 @@ export const useWalletCenter = (chainProperties?: any) => {
       try {
         const wallet = new (wallets.get(typeWallet)!)(typeWallet as PolkadotWalletName);
         const currentWallets = await wallet.getAccounts();
+        
+        // Handle case where user denies access or no accounts found
+        if (currentWallets.size === 0) {
+          throw new Error(`ACCESS_DENIED: Please approve access in your ${typeWallet} extension for this website`);
+        }
+
         const connectedWallets =
           localStorage.getItem(CONNECTED_WALLET_TYPE)?.split(';') || [];
 
@@ -64,6 +44,16 @@ export const useWalletCenter = (chainProperties?: any) => {
         setConnectedWallets((prev) => new Map([...prev, [typeWallet, currentWallets]]));
         return currentWallets;
       } catch (e: any) {
+        // Improved error handling with specific messages
+        if (e.message.includes('ACCESS_DENIED')) {
+          throw new Error(e.message); // Pass through our custom error
+        } else if (e.message.includes('access') || e.message.includes('approve')) {
+          throw new Error(`Please approve access for this site in your ${typeWallet} wallet extension. Go to your wallet settings and whitelist this domain.`);
+        } else if (e.message.includes('Not installed')) {
+          throw new Error(`${typeWallet} extension not found. Please install it first.`);
+        }
+        
+        // Clean up localStorage on error
         const connectedWallets =
           localStorage.getItem(CONNECTED_WALLET_TYPE)?.split(';') || [];
         if (connectedWallets.includes(typeWallet)) {
@@ -72,7 +62,8 @@ export const useWalletCenter = (chainProperties?: any) => {
             connectedWallets.filter((type) => type !== typeWallet).join(';')
           );
         }
-        throw e;
+        
+        throw new Error(`Failed to connect ${typeWallet}: ${e.message}`);
       }
     },
     []
