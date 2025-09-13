@@ -12,7 +12,7 @@ import { Eip1193Provider, ethers } from "ethers";
 import { Web3Auth } from "@web3auth/modal";
 import { UniqueChain } from "@unique-nft/sdk";
 import { noop } from "../utils/common";
-import { Account, AccountsContextValue, SignerTypeEnum, IAccount } from "./types"; // Added IAccount import
+import { Account, AccountsContextValue, SignerTypeEnum, IAccount } from "./types";
 import { useAccount } from "wagmi";
 import { Address } from "@unique-nft/utils";
 import { ConnectedWalletsName } from "./useWalletCenter";
@@ -27,6 +27,11 @@ const magicInstance = new Magic("pk_live_E224E308B81F94FB", {
     chainId: Number(process.env.REACT_APP_CHAIN_ID) || 8882,
   },
 });
+
+// Create a default null signer
+const getDefaultSigner = () => {
+  return null as any; // Return null signer as any type
+};
 
 export const AccountsContext = createContext<AccountsContextValue>({
   accounts: new Map(),
@@ -103,8 +108,8 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
       address,
       signerType: SignerTypeEnum.Ethereum,
       name: "",
-      signer: undefined,
-      normalizedAddress: ethereumAddress, // Fixed: added normalizedAddress
+      signer: getDefaultSigner(), // Changed from undefined to default signer
+      normalizedAddress: ethereumAddress,
       sign: undefined,
     };
     const sdk = UniqueChain({ baseUrl });
@@ -236,7 +241,7 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
           address: userMetadata.publicAddress || "",
           signerType: SignerTypeEnum.Magiclink,
           name: email,
-          signer: undefined,
+          signer: getDefaultSigner(), // Changed from undefined to default signer
           normalizedAddress: ethereumAddress,
           sign: undefined,
         };
@@ -287,7 +292,7 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
           address: userMetadata.publicAddress || "",
           signerType: SignerTypeEnum.Magiclink,
           name: userMetadata.email || "",
-          signer: undefined,
+          signer: getDefaultSigner(), // Changed from undefined to default signer
           normalizedAddress: ethereumAddress,
           sign: undefined,
         };
