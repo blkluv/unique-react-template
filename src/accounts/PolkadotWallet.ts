@@ -19,23 +19,26 @@ export type PolkadotWalletName =
   | "novawallet";
 
 /**
- * Class representing a Polkadot wallet integration.
- *
- * @implements {BaseWalletEntity<InjectedAccountWithMeta>}
+ * Extended wallet type to include walletType
  */
-export class PolkadotWallet
-  implements BaseWalletEntity<InjectedAccountWithMeta>
-{
-  _accounts = new Map<string, BaseWalletType<InjectedAccountWithMeta>>();
+export type UniqueWalletType = BaseWalletType<InjectedAccountWithMeta> & {
+  walletType: PolkadotWalletName;
+  publicKey: Uint8Array;
+  prefixedAddress: (prefix?: number) => string;
+  verify: (message: string | Uint8Array, signature: string | Uint8Array) => boolean;
+};
+
+/**
+ * Class representing a Polkadot wallet integration.
+ */
+export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta> {
+  _accounts = new Map<string, UniqueWalletType>();
   wallet: PolkadotWalletName;
 
   constructor(defaultWallet: PolkadotWalletName = "polkadot-js") {
     this.wallet = defaultWallet;
   }
 
-  /**
-   * Loads and returns the accounts associated with the connected wallet.
-   */
   async getAccounts() {
     const wallets = await Polkadot.loadWalletByName(this.wallet);
 
@@ -48,19 +51,13 @@ export class PolkadotWallet
           const normalizedAddress = Address.normalize.substrateAddress(account.address);
           const address = Address.normalize.substrateAddress(account.address, 7391);
 
-          const uniqueAccount: BaseWalletType<InjectedAccountWithMeta> & {
-            publicKey: Uint8Array;
-            prefixedAddress: (prefix?: number) => string;
-            verify: (message: string | Uint8Array, signature: string | Uint8Array) => boolean;
-          } = {
+          const uniqueAccount: UniqueWalletType = {
             name: account.meta.name || "",
             normalizedAddress,
             address,
-            walletType: this.wallet,
+            walletType: this.wallet, // Now valid
             walletMetaInformation: account,
             signerType: SignerTypeEnum.Polkadot,
-
-            // --- UniqueChain-required fields ---
             publicKey: (account as any).publicKey || new Uint8Array(),
             prefixedAddress: (prefix?: number) => {
               try {
@@ -70,26 +67,23 @@ export class PolkadotWallet
                 return account.address;
               }
             },
-
-            // Updated sign function using account.sign
             sign: async (message: string | Uint8Array) => {
               const data = typeof message === "string" ? new TextEncoder().encode(message) : message;
               const result = await account.sign(data);
               return result?.signature ? new Uint8Array(Buffer.from(result.signature, "hex")) : new Uint8Array();
             },
-
-            verify: () => true, // TODO: implement proper verification if needed
+            verify: () => true, // TODO: implement proper verification
             signer: { ...account.signer, address },
           };
 
-          return [account.address, uniqueAccount] as [string, typeof uniqueAccount];
+          return [account.address, uniqueAccount] as [string, UniqueWalletType];
         } catch (error) {
           console.error(`Failed to process account ${account.address}:`, error);
           return null;
         }
       })
       .filter(
-        (entry): entry is [string, BaseWalletType<InjectedAccountWithMeta>] => entry !== null
+        (entry): entry is [string, UniqueWalletType] => entry !== null
       );
 
     this._accounts = new Map(accountEntries);
