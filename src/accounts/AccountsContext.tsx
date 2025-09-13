@@ -180,6 +180,7 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
         account.balance =
           Number(balanceResponse.available) / Math.pow(10, Number(balanceResponse.decimals));
 
+        // ❌ Removed unsupported walletMetaInformation
         typedPolkadotAccounts.set(address, account);
       }
 
