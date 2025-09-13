@@ -12,7 +12,7 @@ import { Eip1193Provider, ethers } from "ethers";
 import { Web3Auth } from "@web3auth/modal";
 import { UniqueChain } from "@unique-nft/sdk";
 import { noop } from "../utils/common";
-import { Account, AccountsContextValue, SignerTypeEnum } from "./types";
+import { Account, AccountsContextValue, SignerTypeEnum, IAccount } from "./types"; // Added IAccount import
 import { useAccount } from "wagmi";
 import { Address } from "@unique-nft/utils";
 import { ConnectedWalletsName } from "./useWalletCenter";
@@ -104,7 +104,7 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
       signerType: SignerTypeEnum.Ethereum,
       name: "",
       signer: undefined,
-      normalizedAddress: "",
+      normalizedAddress: ethereumAddress, // Fixed: added normalizedAddress
       sign: undefined,
     };
     const sdk = UniqueChain({ baseUrl });
@@ -180,7 +180,6 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
         account.balance =
           Number(balanceResponse.available) / Math.pow(10, Number(balanceResponse.decimals));
 
-        // ❌ Removed unsupported walletMetaInformation
         typedPolkadotAccounts.set(address, account);
       }
 
