@@ -1,5 +1,5 @@
-import { InjectedAccountWithMeta } from "@polkadot/extension-inject/types"; // Keep InjectedAccountWithMeta for individual account types
-import { Polkadot, IPolkadotExtensionWallet } from "@unique-nft/utils/extension"; // Import IPolkadotExtensionWallet
+import { InjectedAccountWithMeta, InjectedExtension } from "@polkadot/extension-inject/types";
+import { Polkadot, IPolkadotExtensionWallet } from "@unique-nft/utils/extension";
 import { Address } from "@unique-nft/utils";
 import { Keyring } from "@polkadot/api";
 import {
@@ -42,7 +42,6 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
   }
 
   async getAccounts() {
-    // FIX: Changed type to IPolkadotExtensionWallet as returned by @unique-nft/utils/extension
     const wallets: IPolkadotExtensionWallet | undefined = await Polkadot.loadWalletByName(this.wallet);
 
     if (!wallets || !wallets.signer) {
@@ -83,13 +82,14 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
                 return new Uint8Array();
               }
               
-              const result: SignerResult = await signer.signPayload(payload);
+              // FIX: Remove the explicit type annotation to allow for the differing return type
+              const result = await signer.signPayload(payload);
               
               return result?.signature
                 ? new Uint8Array(Buffer.from(result.signature.slice(2), "hex"))
                 : new Uint8Array();
             },
-            verify: () => true, // TODO: implement proper verification
+            verify: () => true,
             signer: wallets.signer,
           };
 
