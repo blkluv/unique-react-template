@@ -7,6 +7,7 @@ import {
   BaseWalletType,
   SignerTypeEnum,
 } from "./types";
+import { SignerPayloadJSON, SignerResult } from "@polkadot/types/types";
 
 /**
  * Supported Polkadot-based wallets.
@@ -68,19 +69,17 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
                 return account.address;
               }
             },
-            sign: async (message: string | Uint8Array) => {
-              const data =
-                typeof message === "string" ? new TextEncoder().encode(message) : message;
-
-              if (!account.signer) {
-                console.error("No signer available for this account", account);
+            // The sign method now correctly accepts and handles the required payload type
+            sign: async (payload: SignerPayloadJSON) => {
+              if (!account.signer.signPayload) {
+                console.error("No signPayload method available for this account's signer", account);
                 return new Uint8Array();
               }
-
-              // FIXED: Only pass the message; don't pass an options object
-              const result = await account.signer.sign(data);
+              
+              const result: SignerResult = await account.signer.signPayload(payload);
+              
               return result?.signature
-                ? new Uint8Array(Buffer.from(result.signature, "hex"))
+                ? new Uint8Array(Buffer.from(result.signature.slice(2), "hex"))
                 : new Uint8Array();
             },
             verify: () => true, // TODO: implement proper verification
