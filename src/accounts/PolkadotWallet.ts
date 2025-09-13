@@ -1,5 +1,5 @@
-import { InjectedAccountWithMeta, InjectedExtension } from "@polkadot/extension-inject/types"; // Import InjectedExtension here
-import { Polkadot } from "@unique-nft/utils/extension"; // Keep Polkadot as is
+import { InjectedAccountWithMeta } from "@polkadot/extension-inject/types"; // Keep InjectedAccountWithMeta for individual account types
+import { Polkadot, IPolkadotExtensionWallet } from "@unique-nft/utils/extension"; // Import IPolkadotExtensionWallet
 import { Address } from "@unique-nft/utils";
 import { Keyring } from "@polkadot/api";
 import {
@@ -42,8 +42,8 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
   }
 
   async getAccounts() {
-    // Correctly type 'wallets' as InjectedExtension | undefined
-    const wallets: InjectedExtension | undefined = await Polkadot.loadWalletByName(this.wallet);
+    // FIX: Changed type to IPolkadotExtensionWallet as returned by @unique-nft/utils/extension
+    const wallets: IPolkadotExtensionWallet | undefined = await Polkadot.loadWalletByName(this.wallet);
 
     if (!wallets || !wallets.signer) {
       console.error("No Polkadot wallet found or signer not available.");
@@ -75,9 +75,8 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
                 return account.address;
               }
             },
-            // The sign method now correctly accepts the correct payload type
             sign: async (payload: SignerPayloadJSON) => {
-              const signer = wallets.signer; // Get the signer from the wallet extension
+              const signer = wallets.signer;
               
               if (!signer || !signer.signPayload) {
                 console.error("No signPayload method available for this account's signer", account);
@@ -91,7 +90,7 @@ export class PolkadotWallet implements BaseWalletEntity<InjectedAccountWithMeta>
                 : new Uint8Array();
             },
             verify: () => true, // TODO: implement proper verification
-            signer: wallets.signer, // Set the signer property on the uniqueAccount object
+            signer: wallets.signer,
           };
 
           return [account.address, uniqueAccount] as [string, UniqueWalletType];
