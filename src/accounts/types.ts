@@ -43,14 +43,14 @@ export type AccountBalances = {
   ethMirror: AccountBalance;
 };
 
-// --- CRITICAL FIX: Add IAccount interface to match Account type ---
+// --- CRITICAL FIX: Make signer REQUIRED to match @unique-nft/sdk IAccount interface ---
 export interface IAccount {
   address: string;
   normalizedAddress: string;
   name: string;
   balance?: number;
   signerType: SignerTypeEnum;
-  signer?: EthSigner | any;
+  signer: EthSigner | any; // REMOVED the ? - signer is now REQUIRED
   walletType?: PolkadotWalletName;
   publicKey?: Uint8Array;
   prefixedAddress?: (prefix?: number) => string;
@@ -59,7 +59,7 @@ export interface IAccount {
   walletMetaInformation?: InjectedAccountWithMeta;
 }
 
-export type Account = IAccount; // Now Account is an alias for IAccount
+export type Account = IAccount;
 
 export interface AccountsContextValue {
   accounts: Map<string, Account>;
