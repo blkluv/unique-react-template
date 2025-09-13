@@ -9,6 +9,9 @@ import {
 import { UniqueChain } from "@unique-nft/sdk";
 import { useAccountsContext } from "../accounts/AccountsContext";
 
+// It's a good practice to import the Account type to be explicit
+import { Account } from '../accounts/types'; 
+
 export type UniqueChainType = ReturnType<typeof UniqueChain>;
 
 export type SdkContextValueType = {
@@ -37,7 +40,7 @@ export const baseUrl = process.env.REACT_APP_REST_URL || "";
  * @example
  * ```tsx
  * <SdkProvider>
- *   <App />
+ * <App />
  * </SdkProvider>
  * ```
  */
@@ -47,7 +50,14 @@ export const SdkProvider = ({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     if (selectedAccount) {
-      const sdkInstance = UniqueChain({ baseUrl, account: selectedAccount });
+      // ✅ FIX: Create a new object that guarantees 'signer' is present.
+      // This satisfies the SDK's IAccount interface.
+      const sdkAccount = {
+        ...selectedAccount,
+        signer: selectedAccount.signer || null, // If signer is undefined, set it to null
+      } as Account; // Type assertion to let TypeScript know this is an Account
+
+      const sdkInstance = UniqueChain({ baseUrl, account: sdkAccount });
       setSdk(sdkInstance);
     } else {
       const sdkInstance = UniqueChain({ baseUrl });
