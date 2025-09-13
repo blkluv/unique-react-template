@@ -20,9 +20,10 @@ import { useWalletCenter } from "./useWalletCenter";
 import { PolkadotWallet } from "./PolkadotWallet";
 import { baseUrl } from "../sdk/SdkContext";
 
-const magicInstance = new Magic('pk_live_E224E308B81F94FB', {
+const magicInstance = new Magic("pk_live_E224E308B81F94FB", {
   network: {
-    rpcUrl: process.env.REACT_APP_CHAIN_RPC_URL || 'https://rpc-opal.unique.network',
+    rpcUrl:
+      process.env.REACT_APP_CHAIN_RPC_URL || "https://rpc-opal.unique.network",
     chainId: Number(process.env.REACT_APP_CHAIN_ID) || 8882,
   },
 });
@@ -42,7 +43,6 @@ export const AccountsContext = createContext<AccountsContextValue>({
   loginWithWeb3Auth: async () => Promise.resolve(),
   logoutWeb3Auth: async () => Promise.resolve(),
   magic: null,
-
   providerWeb3Auth: null,
   setWeb3Auth: () => {},
   setProviderWeb3Auth: () => {},
@@ -56,6 +56,7 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
     return savedId ? Number(savedId) : 0;
   });
 
+  // Restore accounts from localStorage
   useEffect(() => {
     const savedAccounts = localStorage.getItem("accounts");
     if (!savedAccounts) {
@@ -63,7 +64,7 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
       setSelectedAccountId(0);
     } else {
       try {
-        const parsedAccounts = JSON.parse(savedAccounts);
+        const parsedAccounts: [string, Account][] = JSON.parse(savedAccounts);
         setAccounts(new Map(parsedAccounts));
       } catch (error) {
         console.error("Failed to restore accounts from localStorage", error);
@@ -96,12 +97,20 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
   const updateEthereumWallet = useCallback(async () => {
     if (!address) return;
 
-    const ethereumAddress = Address.extract.substrateOrMirrorIfEthereumNormalized(address);
-    const account: Account = { address, signerType: SignerTypeEnum.Ethereum, name: '', signer: undefined, normalizedAddress: '', sign: undefined };
+    const ethereumAddress =
+      Address.extract.substrateOrMirrorIfEthereumNormalized(address);
+    const account: Account = {
+      address,
+      signerType: SignerTypeEnum.Ethereum,
+      name: "",
+      signer: undefined,
+      normalizedAddress: "",
+      sign: undefined,
+    };
     const sdk = UniqueChain({ baseUrl });
-
     const balanceResponse = await sdk.balance.get({ address: ethereumAddress });
-    account.balance = Number(balanceResponse.available) / Math.pow(10, Number(balanceResponse.decimals));
+    account.balance =
+      Number(balanceResponse.available) / Math.pow(10, Number(balanceResponse.decimals));
 
     setAccounts((prevAccounts) => {
       const newAccounts = new Map(prevAccounts);
@@ -117,7 +126,8 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
   const reinitializePolkadotAccountsWithBalance = useCallback(async () => {
     if (accounts.size === 0) return;
 
-    const updatedPolkadotAccounts = new Map();
+    const updatedPolkadotAccounts = new Map<string, Account>();
+
     for (let [address, account] of accounts) {
       if (account.signerType === SignerTypeEnum.Polkadot) {
         try {
@@ -128,7 +138,8 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
             account.signer = walletAccount.signer;
             const sdk = UniqueChain({ baseUrl });
             const balanceResponse = await sdk.balance.get({ address });
-            account.balance = Number(balanceResponse.available) / Math.pow(10, Number(balanceResponse.decimals));
+            account.balance =
+              Number(balanceResponse.available) / Math.pow(10, Number(balanceResponse.decimals));
             updatedPolkadotAccounts.set(address, account);
           }
         } catch (e) {
@@ -142,37 +153,46 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
       updatedPolkadotAccounts.forEach((account, address) => {
         newAccounts.set(address, account);
       });
-
       return newAccounts;
     });
   }, [accounts]);
 
   useEffect(() => {
-      reinitializePolkadotAccountsWithBalance();
+    reinitializePolkadotAccountsWithBalance();
   }, []);
 
   const { connectWallet } = useWalletCenter();
 
-  const setPolkadotAccountsWithBalance = useCallback(async (walletName: ConnectedWalletsName = 'polkadot-js') => {
-    const polkadotAccounts = await connectWallet(walletName);
-    if (polkadotAccounts.size === 0) {
-      alert(`No ${walletName} accounts found or access denied for this domain`);
-      throw new Error(`No ${walletName} accounts found or access denied for this domain`);
-    }
+  const setPolkadotAccountsWithBalance = useCallback(
+    async (walletName: ConnectedWalletsName = "polkadot-js") => {
+      const polkadotAccounts = await connectWallet(walletName);
+      if (polkadotAccounts.size === 0) {
+        alert(`No ${walletName} accounts found or access denied for this domain`);
+        throw new Error(`No ${walletName} accounts found or access denied for this domain`);
+      }
 
-    for (let [address, account] of polkadotAccounts) {
-      account.signerType = SignerTypeEnum.Polkadot;
-      const sdk = UniqueChain({ baseUrl });
-      const balanceResponse = await sdk.balance.get({ address });
-      account.balance = Number(balanceResponse.available) / Math.pow(10, Number(balanceResponse.decimals));
-      polkadotAccounts.set(address, account);
-    }
+      const typedPolkadotAccounts = new Map<string, Account>();
 
-    setAccounts((prevAccounts) => {
-      const accountsToUpdate = new Map([...prevAccounts, ...polkadotAccounts]);
-      return accountsToUpdate;
-    });
-  }, []);
+      for (let [address, account] of polkadotAccounts) {
+        account.signerType = SignerTypeEnum.Polkadot;
+        const sdk = UniqueChain({ baseUrl });
+        const balanceResponse = await sdk.balance.get({ address });
+        account.balance =
+          Number(balanceResponse.available) / Math.pow(10, Number(balanceResponse.decimals));
+
+        typedPolkadotAccounts.set(address, account);
+      }
+
+      setAccounts((prevAccounts) => {
+        const newAccounts = new Map(prevAccounts);
+        typedPolkadotAccounts.forEach((account, address) => {
+          newAccounts.set(address, account);
+        });
+        return newAccounts;
+      });
+    },
+    [connectWallet]
+  );
 
   useEffect(() => {
     if (!address) {
@@ -201,10 +221,10 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
     }
   }, [address]);
 
+  // Magic Link login/logout
   const loginWithMagicLink = useCallback(async (email: string) => {
     try {
       const sdk = UniqueChain({ baseUrl });
-
       const didToken = await magicInstance.auth.loginWithMagicLink({ email });
       if (didToken) {
         const userMetadata = await magicInstance.user.getMetadata();
@@ -213,7 +233,7 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
             userMetadata.publicAddress || ""
           );
         const account: Account = {
-          address: userMetadata.publicAddress || '',
+          address: userMetadata.publicAddress || "",
           signerType: SignerTypeEnum.Magiclink,
           name: email,
           signer: undefined,
@@ -222,7 +242,8 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
         };
 
         const balanceResponse = await sdk.balance.get({ address: ethereumAddress });
-        account.balance = Number(balanceResponse.available) / Math.pow(10, Number(balanceResponse.decimals));
+        account.balance =
+          Number(balanceResponse.available) / Math.pow(10, Number(balanceResponse.decimals));
 
         setAccounts((prevAccounts) => {
           const newAccounts = new Map(prevAccounts);
@@ -253,51 +274,52 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
     }
   }, []);
 
-    const restoreMagicSession = useCallback(async () => {
-        try {
-            const isLoggedIn = await magicInstance.user.isLoggedIn();
-            if (isLoggedIn) {
-                const userMetadata = await magicInstance.user.getMetadata();
-                const ethereumAddress =
-                    Address.extract.substrateOrMirrorIfEthereumNormalized(
-                        userMetadata.publicAddress || ""
-                    );
-                const account: Account = {
-                    address: userMetadata.publicAddress || '',
-                    signerType: SignerTypeEnum.Magiclink,
-                    name: userMetadata.email || "",
-                    signer: undefined,
-                    normalizedAddress: ethereumAddress,
-                    sign: undefined,
-                };
+  const restoreMagicSession = useCallback(async () => {
+    try {
+      const isLoggedIn = await magicInstance.user.isLoggedIn();
+      if (isLoggedIn) {
+        const userMetadata = await magicInstance.user.getMetadata();
+        const ethereumAddress =
+          Address.extract.substrateOrMirrorIfEthereumNormalized(
+            userMetadata.publicAddress || ""
+          );
+        const account: Account = {
+          address: userMetadata.publicAddress || "",
+          signerType: SignerTypeEnum.Magiclink,
+          name: userMetadata.email || "",
+          signer: undefined,
+          normalizedAddress: ethereumAddress,
+          sign: undefined,
+        };
 
-                const sdk = UniqueChain({ baseUrl });
-                const balanceResponse = await sdk.balance.get({ address: ethereumAddress });
-                account.balance = Number(balanceResponse.available) / Math.pow(10, Number(balanceResponse.decimals));
+        const sdk = UniqueChain({ baseUrl });
+        const balanceResponse = await sdk.balance.get({ address: ethereumAddress });
+        account.balance =
+          Number(balanceResponse.available) / Math.pow(10, Number(balanceResponse.decimals));
 
-
-                setAccounts((prevAccounts) => {
-                    const newAccounts = new Map(prevAccounts);
-                    newAccounts.set(ethereumAddress, account);
-                    return newAccounts;
-                });
-            }
-        } catch (error) {
-            console.error("Failed to restore Magic link session:", error);
-        }
-    }, []);
+        setAccounts((prevAccounts) => {
+          const newAccounts = new Map(prevAccounts);
+          newAccounts.set(ethereumAddress, account);
+          return newAccounts;
+        });
+      }
+    } catch (error) {
+      console.error("Failed to restore Magic link session:", error);
+    }
+  }, []);
 
   useEffect(() => {
     restoreMagicSession();
   }, [restoreMagicSession]);
 
+  // Web3Auth login/logout
   const [web3Auth, setWeb3Auth] = useState<Web3Auth | null>(null);
   const [providerWeb3Auth, setProviderWeb3Auth] = useState<Eip1193Provider | null>(
     null
   );
 
-    const loginWithWeb3Auth = useCallback(async () => {
-        const sdk = UniqueChain({ baseUrl });
+  const loginWithWeb3Auth = useCallback(async () => {
+    const sdk = UniqueChain({ baseUrl });
     if (!web3Auth) return;
 
     try {
@@ -369,7 +391,6 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
       loginWithMagicLink,
       logoutMagicLink,
       magic: magicInstance,
-
       loginWithWeb3Auth,
       logoutWeb3Auth,
       setWeb3Auth,
@@ -387,7 +408,6 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
       clearAccounts,
       loginWithMagicLink,
       logoutMagicLink,
-
       loginWithWeb3Auth,
       logoutWeb3Auth,
       setWeb3Auth,
@@ -403,4 +423,5 @@ export const AccountsContextProvider = ({ children }: PropsWithChildren) => {
   );
 };
 
-export const useAccountsContext = (): AccountsContextValue => useContext(AccountsContext);
+export const useAccountsContext = (): AccountsContextValue =>
+  useContext(AccountsContext);
