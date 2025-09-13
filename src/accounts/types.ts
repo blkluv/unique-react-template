@@ -3,9 +3,10 @@ import { BN } from "@polkadot/util";
 import { IEthereumExtensionResultSafe } from "@unique-nft/utils/extension";
 import { ConnectedWalletsName } from "./useWalletCenter";
 import { Eip1193Provider, Signer as EthSigner } from "ethers";
-import { PolkadotWalletName } from "./PolkadotWallet"; // Assuming PolkadotWalletName is defined here
+import { PolkadotWalletName } from "./PolkadotWallet";
 import { Magic } from "magic-sdk";
 import { SignerPayloadJSON } from "@polkadot/types/types"; // Import for Polkadot sign method
+import { Web3Auth } from "@web3auth/modal"; // <-- ADD THIS IMPORT
 
 export enum SignerTypeEnum {
   Polkadot = "Polkadot",
@@ -13,12 +14,6 @@ export enum SignerTypeEnum {
   Magiclink = 'Magiclink',
   Web3Auth = 'Web3Auth',
 }
-
-// Broaden the Signer type to include Polkadot Signer if needed directly,
-// but for Account type, we'll make it more specific within the Account itself.
-// export type Signer = any | EthSigner; // Kept as 'any' for maximum flexibility if you have other signers, but being more specific is better.
-// For the purpose of Account, we will use a union type for the signer.
-
 
 // BaseWalletType seems more like an internal interface for PolkadotWallet class,
 // the properties from it are being merged into Account, so we can adjust Account directly.
